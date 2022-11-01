@@ -33,6 +33,63 @@ float autonGPSAngle(double goalX, double goalY, bool frontGPSsensor, bool threeT
 
 /**
  *
+ * @param goalX
+ * @param goalY
+ * @param frontGPSsensor
+ * @param red if true: red goal; if false: blue goal
+ */
+void skillsGPSAim(double goalX, double goalY, bool frontGPSsensor, bool red, bool bashCorrection) {
+    // getting GPS position
+    gps_status_s_t status;
+    if (frontGPSsensor == true) {
+        status = gps_get_status(GPSFRONT_PORT);
+    } else status = gps_get_status(GPSBACK_PORT);
+    double robotX = status.x;
+    double robotY = status.y;
+    //TURN TO GPS HEADING FUNCTION
+
+    double xDiff = goalX - robotX;
+    double yDiff = goalY - robotY; // if tan is negative, robot turn left; if tan is positive, robot turn right
+
+    double idealAngleGPSCoor = 0; // angle to turn to in GPS global heading
+    double alpha = 00; // random value
+    if (red) {
+        if (xDiff > 0 && yDiff < 0) {
+            alpha = atan(yDiff / xDiff) * 180 / PI;
+            idealAngleGPSCoor = 90 - alpha;
+        } else if (yDiff == 0 && xDiff > 0) {
+            idealAngleGPSCoor = 90;
+        } else if (xDiff > 0 && yDiff > 0) {
+            double alpha = atan(yDiff / xDiff) * 180 / PI;
+            idealAngleGPSCoor = 90 - alpha;
+        } else if (xDiff == 0) {
+            idealAngleGPSCoor = 0;
+        } else if (xDiff < 0 && yDiff > 0) {
+            alpha = atan(yDiff / xDiff) * 180 / PI;
+            idealAngleGPSCoor = -90 - alpha;
+        }
+    } else { // blue
+        if (yDiff > 0 && xDiff < 0) {
+            alpha = atan(yDiff / xDiff) * 180 / PI;
+            idealAngleGPSCoor = -90 - alpha;
+        } else if (xDiff < 0 && yDiff == 0) {
+            idealAngleGPSCoor = -90;
+        } else if (xDiff < 0 && yDiff < 0) {
+            alpha = atan(yDiff / xDiff) * 180 / PI;
+            idealAngleGPSCoor = -90 - alpha;
+        } else if (xDiff == 0 && yDiff < 0) {
+            idealAngleGPSCoor = -180; // should be same as 180
+        } else if (xDiff > 0 && yDiff < 0) {
+            alpha = atan(yDiff / xDiff) * 180 / PI;
+            idealAngleGPSCoor = 90 - alpha;
+        }
+    }
+    idealAngleGPSCoor = idealAngleGPSCoor / fabs(idealAngleGPSCoor) * (fabs(idealAngleGPSCoor) - bashCorrection);
+    turnGPSAbsoluteGyro(idealAngleGPSCoor - bashCorrection, 30);
+}
+
+/**
+ *
  * @param angle = absolute angle to turn to based on GPS coor.
  */
 void turnGPSAbsoluteGyro(double targetAngle, double speed) {
